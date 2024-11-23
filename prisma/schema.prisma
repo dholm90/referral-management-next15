@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  password        String
+  name            String?
+  role            Role             @default(USER)
+  points          Int              @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  referralCodes   ReferralCode[]
+  referrals       Referral[]       @relation("Referrer")
+  referredBy      Referral[]       @relation("Referred")
+  cashoutRequests CashoutRequest[]
+
+  @@map("users")
+}
+
+model ReferralCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("referral_codes")
+}
+
+model Referral {
+  id          String        @id @default(cuid())
+  referrerId  String
+  referredId  String
+  status      ReferralStatus @default(PENDING)
+  points      Int           @default(0)
+  referrer    User          @relation("Referrer", fields: [referrerId], references: [id])
+  referred    User          @relation("Referred", fields: [referredId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("referrals")
+}
+
+model CashoutRequest {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  amount    Float
+  status    CashoutStatus  @default(PENDING)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@map("cashout_requests")
+}
+
+model SystemSettings {
+  id                String   @id @default(cuid())
+  pointsPerReferral Int      @default(100)
+  minimumCashout    Float    @default(10.0)
+  pointToCashRatio  Float    @default(0.01)
+  updatedAt         DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ReferralStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CashoutStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
